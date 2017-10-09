@@ -440,7 +440,10 @@ exports.privateToAddress = function (privateKey) {
 exports.isValidAddress = function (address) {
   return /^0x[0-9a-fA-F]{40}$/i.test(address)
 }
-
+exports.waddressLength = 66*2;
+exports.isValidWAddress = function (address) {
+    return /^0x[0-9a-fA-F]{132}$/i.test(address)
+}
 /**
  * Returns a checksummed address
  * @param {String} address
@@ -461,7 +464,25 @@ exports.toChecksumAddress = function (address) {
 
   return ret
 }
+exports.toChecksumOTAddress = function (address) {
+    address = exports.stripHexPrefix(address).toLowerCase();
+    if(address.length != exports.waddressLength){
+        return "";
+    }
+    let abx = address.slice(2,66)+address.slice(68)
+    let Cabx = ""
+    var hash = exports.sha3(address,512).toString('hex')
 
+    for (var i = 0; i < abx.length; i++) {
+        if (parseInt(hash[i], 16) >= 8) {
+            Cabx += abx[i].toUpperCase();
+        }else{
+            Cabx += abx[i];
+        }
+    }
+
+    return "0x"+address.slice(0,2)+Cabx.slice(0,64)+address.slice(66,68)+Cabx.slice(64);
+}
 /**
  * Checks if the address is a valid checksummed address
  * @param {Buffer} address
@@ -470,7 +491,54 @@ exports.toChecksumAddress = function (address) {
 exports.isValidChecksumAddress = function (address) {
   return exports.isValidAddress(address) && (exports.toChecksumAddress(address) === address)
 }
+exports.isValidChecksumOTAddress = function (address) {
+    return exports.isValidWAddress(address) && (exports.toChecksumOTAddress(address) === address)
+}
+exports.getDataForSendWanCoin = function(fromWaddr){
+    if (!exports.isValidChecksumOTAddress(fromWaddr)){
+        return "";
+    }
+    let Pubkey = exports.convertWaddrtoRaw(fromWaddr);
+    return "0x00"+Pubkey;
+}
+exports.convertWaddrtoRaw = function(fromWaddr){
+    let address = exports.stripHexPrefix(fromWaddr).toLowerCase();
+    let pubKeyA = secp256k1.publicKeyConvert(new Buffer(address.slice(0,66), 'hex'), false);
+    let pubKeyB = secp256k1.publicKeyConvert(new Buffer(address.slice(66), 'hex'), false);
+    let PubKey = secp256k1.publicKeyConvert(pubKeyA,false).toString('hex').slice(2)+secp256k1.publicKeyConvert(pubKeyB,false).toString('hex').slice(2);
+    return PubKey;
+}
 
+
+exports.generateA1 = function(RPrivateKeyDBytes, pubKeyA,  pubKeyB){
+    let A1 = secp256k1.publicKeyTweakMul(pubKeyB, RPrivateKeyDBytes, false);
+    A1Bytes = exports.sha3(A1);
+    A1 = secp256k1.publicKeyTweakAdd(pubKeyA, A1Bytes, false);
+    return A1;
+}
+exports.recoverPubkeyFromWaddress = function(fromWaddr){
+    let address = exports.stripHexPrefix(fromWaddr).toLowerCase();
+    let pubKeyA = secp256k1.publicKeyConvert(new Buffer(address.slice(0,66), 'hex'), false);
+    let pubKeyB = secp256k1.publicKeyConvert(new Buffer(address.slice(66), 'hex'), false);
+    return {A:pubKeyA, B:pubKeyB}
+}
+exports.recoverPubkeyFromRaw = function(fromRaw){
+    let rawA = "04"+fromRaw.slice(0,128);
+    let rawB = "04"+fromRaw.slice(128);
+    let pubKeyA = secp256k1.publicKeyConvert(new Buffer(rawA, 'hex'), false);
+    let pubKeyB = secp256k1.publicKeyConvert(new Buffer(rawB, 'hex'), false);
+    return {A:pubKeyA, B:pubKeyB}
+}
+exports.generateOTAWaddress = function (fromWaddr) {
+  let PubKey = exports.recoverPubkeyFromWaddress(fromWaddr);
+  let pubKeyA = PubKey.A;
+  let pubKeyB = PubKey.B;
+  let RPrivateKey = _generatePrivateKey();
+  let A1 = exports.generateA1(RPrivateKey, pubKeyA, pubKeyB)
+  let S1 = secp256k1.publicKeyCreate(new Buffer(RPrivateKey, 'hex'), false);
+  let OTAPubKey = secp256k1.publicKeyConvert(A1,true).toString('hex')+secp256k1.publicKeyConvert(S1,true).toString('hex');
+  return exports.toChecksumOTAddress(OTAPubKey);
+}
 /**
  * Generates an address of a newly created contract
  * @param {Buffer} from the address which is creating this new address
