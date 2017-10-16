@@ -5,7 +5,7 @@ const rlp = require('./rlp.js')
 const BN = require('bn.js')
 const createHash = require('create-hash')
 const crypto = require('crypto');
-
+const secp256k1_N = new BN("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
 /**
  * the max integer that this VM can handle (a ```BN```)
  * @var {BN} MAX_INTEGER
@@ -243,6 +243,14 @@ exports.sha3 = function (a, bits) {
     h.update(a)
   }
   return new Buffer(h.digest('hex'), 'hex')
+}
+
+//x * hash(P)P
+exports.xScalarHashP = function(x, P) {
+    let hashPub = exports.sha3(P);
+    let iP = secp256k1.publicKeyTweakMul(P, hashPub);
+    let I = secp256k1.publicKeyTweakMul(iP, x);
+    return I;
 }
 
 /**
@@ -501,6 +509,49 @@ exports.getDataForSendWanCoin = function(fromWaddr){
     let Pubkey = exports.convertWaddrtoRaw(fromWaddr);
     return "0x00"+Pubkey;
 }
+
+exports.getDataForRefundWanCoin = function(m,otaSk,otaPubK,ringPubKs){
+    let rklen = ringPubKs.length;
+    let s = Math.floor(Math.random()*(rklen+1));
+
+    let I = exports.xScalarHashP(otaSk, otaPubK); //otaSk * hash(otaPubK)otaPubK
+    ringPubKs.splice(s, 0, otaPubK);
+    let q = [];
+    let w = [];
+    let sumC = new BN('0');
+    var h = new SHA3();
+    h.update(m);
+    for(let i=0; i<rklen+1; i++) {
+        q.push(_generatePrivateKey());
+        w.push(_generatePrivateKey());
+        let Li = secp256k1.publicKeyCreate(q[i]);//[qi]G
+        if(i != s){
+            let tP = secp256k1.publicKeyTweakMul(ringPubKs[i], w[i]);//[wi]Pi
+            Li =  secp256k1.publicKeyCombine([Li, tP]); // [qi]G + [wi]Pi
+            sumC = sumC.add(new BN(w[i]));
+        }
+        h.update(Li);
+    }
+    for(let i=0; i<rklen+1; i++) {
+        Ri = exports.xScalarHashP(q[i], ringPubKs[i]);
+        if(i != s){
+            let wiI = secp256k1.publicKeyTweakMul(I, w[i]);
+            Ri = secp256k1.publicKeyCombine([Ri, wiI]);
+        }
+        h.update(Ri);
+    }
+    let cd = h.digest();
+    let c = new BN(cd);
+    let cs = c.sub(sumC).mod(secp256k1_N);
+
+    let Qs = new BN(q[s]);
+    let bnx = new BN(otaSk);
+    let csx = cs.mul(bnx);
+    let rs = Qs.sub(csx).mod(secp256k1_N);
+    q[s] = cs;
+    w[s] = rs;
+    return "0x00";
+}
 exports.convertWaddrtoRaw = function(fromWaddr){
     let address = exports.stripHexPrefix(fromWaddr).toLowerCase();
     let pubKeyA = secp256k1.publicKeyConvert(new Buffer(address.slice(0,66), 'hex'), false);
@@ -508,8 +559,22 @@ exports.convertWaddrtoRaw = function(fromWaddr){
     let PubKey = secp256k1.publicKeyConvert(pubKeyA,false).toString('hex').slice(2)+secp256k1.publicKeyConvert(pubKeyB,false).toString('hex').slice(2);
     return PubKey;
 }
-
-
+exports.convertRawtoWaddr = function(fromRawaddr){
+    let addr = exports.recoverPubkeyFromRaw(fromRawaddr);
+    let pubKeyA = addr.A;
+    let pubKeyB = addr.B;
+    let PubKey = secp256k1.publicKeyConvert(pubKeyA,true).toString('hex')+secp256k1.publicKeyConvert(pubKeyB,true).toString('hex');
+    return exports.toChecksumOTAddress(PubKey);
+}
+exports.generateWaddrFromPriv = function(privA, privB){
+    let pubkeyA = secp256k1.publicKeyCreate(privA, true);
+    let pubkeyB = secp256k1.publicKeyCreate(privB, true);
+    return exports.convertPubKeytoWaddr(pubkeyA, pubkeyB);
+}
+exports.convertPubKeytoWaddr = function(pubKeyA, pubKeyB){
+    let PubKey = secp256k1.publicKeyConvert(pubKeyA,true).toString('hex')+secp256k1.publicKeyConvert(pubKeyB,true).toString('hex');
+    return exports.toChecksumOTAddress(PubKey);
+}
 exports.generateA1 = function(RPrivateKeyDBytes, pubKeyA,  pubKeyB){
     let A1 = secp256k1.publicKeyTweakMul(pubKeyB, RPrivateKeyDBytes, false);
     A1Bytes = exports.sha3(A1);
@@ -897,6 +962,17 @@ exports.computeOTAPrivateKey = function(A, S, a, b){
   k = exports.sha3(pub);
   k = secp256k1.privateKeyTweakAdd(k, privatekey_a);
   return k;
+}
+/*
+otaPubS1 is secpFormat
+bufa, bufb is privatekey Buffer.
+ */
+exports.computeWaddrPrivateKey = function(waddr, bufa, bufb){
+    let ota = exports.recoverPubkeyFromWaddress(waddr);
+    var pub = secp256k1.publicKeyTweakMul(ota.B, bufb, false);
+    k = exports.sha3(pub);
+    k = secp256k1.privateKeyTweakAdd(k, bufa);
+    return k;
 }
 /*
 usage:
