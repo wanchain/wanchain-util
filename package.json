@@ -1,6 +1,6 @@
 {
   "name": "wanchain-util",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "wanchain util package",
   "main": "index.js",
   "scripts": {
