@@ -506,7 +506,7 @@ exports.getDataForSendWanCoin = function(fromWaddr){
     if (!exports.isValidChecksumOTAddress(fromWaddr)){
         return "";
     }
-    let Pubkey = exports.convertWaddrtoRaw(fromWaddr);
+    let Pubkey = exports.stripHexPrefix(fromWaddr).toLowerCase();
     return "0x00"+Pubkey;
 }
 
