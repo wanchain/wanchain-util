@@ -5,7 +5,7 @@ const rlp = require('./rlp.js')
 const BN = require('bn.js')
 const createHash = require('create-hash')
 const crypto = require('crypto');
-const secp256k1_N = new BN("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
+const secp256k1_N = new BN("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16);
 /**
  * the max integer that this VM can handle (a ```BN```)
  * @var {BN} MAX_INTEGER
@@ -509,48 +509,92 @@ exports.getDataForSendWanCoin = function(fromWaddr){
     let Pubkey = exports.stripHexPrefix(fromWaddr).toLowerCase();
     return "0x00"+Pubkey;
 }
-
-exports.getDataForRefundWanCoin = function(m,otaSk,otaPubK,ringPubKs){
+exports.verifyRinSign = function(ringArgs){
+    let sumC = new BN('0');
+    for (let i=0; i<ringArgs.w.length;i++){
+        sumC = sumC.add(new BN(ringArgs.w[i]));
+    }
+    sumC = sumC.umod(secp256k1_N);
+    console.log("all  sum: ",sumC.toBuffer('be',32).toString('hex'));
+    var h = new SHA3(256);
+    h.update(ringArgs.m);
+    for (let i=0; i<ringArgs.w.length;i++){
+        let Li = secp256k1.publicKeyCreate(ringArgs.q[i], false);//[qi]G
+        let tP = secp256k1.publicKeyTweakMul(ringArgs.PubKeys[i], ringArgs.w[i]);//[wi]Pi
+        Li =  secp256k1.publicKeyCombine([Li, tP], false); // [qi]G + [wi]Pi
+        h.update(Li);
+    }
+    for (let i=0; i<ringArgs.q.length;i++){
+        let Ric = exports.xScalarHashP(ringArgs.q[i], ringArgs.PubKeys[i]);
+        let Ri = secp256k1.publicKeyConvert(Ric, false);
+        let wiI = secp256k1.publicKeyTweakMul(ringArgs.I, ringArgs.w[i]);
+        Ri = secp256k1.publicKeyCombine([Ri, wiI], false);
+        h.update(Ri);
+    }
+    console.log("all hash: ",h.digest('hex').toString('hex'));
+    return h.digest('hex').toString('hex') == sumC.toBuffer('be',32).toString('hex');
+}
+exports.getRingSign = function(m,otaSk,otaPubK,ringPubKs){
     let rklen = ringPubKs.length;
     let s = Math.floor(Math.random()*(rklen+1));
-
-    let I = exports.xScalarHashP(otaSk, otaPubK); //otaSk * hash(otaPubK)otaPubK
     ringPubKs.splice(s, 0, otaPubK);
+
+    let Ic = exports.xScalarHashP(otaSk, otaPubK); //otaSk * hash(otaPubK)otaPubK
+    let I = secp256k1.publicKeyConvert(Ic, false);
     let q = [];
     let w = [];
     let sumC = new BN('0');
-    var h = new SHA3();
+    var h = new SHA3(256);
     h.update(m);
     for(let i=0; i<rklen+1; i++) {
         q.push(_generatePrivateKey());
         w.push(_generatePrivateKey());
-        let Li = secp256k1.publicKeyCreate(q[i]);//[qi]G
+        let Li = secp256k1.publicKeyCreate(q[i], false);//[qi]G
         if(i != s){
             let tP = secp256k1.publicKeyTweakMul(ringPubKs[i], w[i]);//[wi]Pi
-            Li =  secp256k1.publicKeyCombine([Li, tP]); // [qi]G + [wi]Pi
+            Li =  secp256k1.publicKeyCombine([Li, tP], false); // [qi]G + [wi]Pi
             sumC = sumC.add(new BN(w[i]));
+            sumC = sumC.umod(secp256k1_N);
         }
         h.update(Li);
+        console.log("L",i,": ",Li.toString('hex'));
     }
     for(let i=0; i<rklen+1; i++) {
-        Ri = exports.xScalarHashP(q[i], ringPubKs[i]);
+        let Ric = exports.xScalarHashP(q[i], ringPubKs[i]);
+        let Ri = secp256k1.publicKeyConvert(Ric, false);
         if(i != s){
             let wiI = secp256k1.publicKeyTweakMul(I, w[i]);
-            Ri = secp256k1.publicKeyCombine([Ri, wiI]);
+            Ri = secp256k1.publicKeyCombine([Ri, wiI], false);
         }
         h.update(Ri);
+        console.log("R",i,": ",Ri.toString('hex'));
     }
-    let cd = h.digest();
-    let c = new BN(cd);
-    let cs = c.sub(sumC).mod(secp256k1_N);
+    let cd = h.digest('hex');
+    let c = new BN(cd,16).umod(secp256k1_N);
+    let cs = c.sub(sumC).umod(secp256k1_N);
 
     let Qs = new BN(q[s]);
-    let bnx = new BN(otaSk);
-    let csx = cs.mul(bnx);
-    let rs = Qs.sub(csx).mod(secp256k1_N);
-    q[s] = cs;
-    w[s] = rs;
-    return "0x00";
+    let bnx = new BN(otaSk).umod(secp256k1_N);
+    let csx = cs.mul(bnx).umod(secp256k1_N)//;
+    let rs = Qs.sub(csx).umod(secp256k1_N);;
+    w[s] = cs.toBuffer();
+    qs_old = q[s];
+    q[s] = rs.toBuffer();
+    // check if qs_old*G == qs_new*G + cs * Ps
+    let qs_oldXG = secp256k1.publicKeyCreate(qs_old, false);
+    console.log("qs_oldXG: ", qs_oldXG.toString('hex'));
+    let qs_newXG_1 = secp256k1.publicKeyCreate(q[s], false);
+    let qs_newXG_2 = secp256k1.publicKeyTweakMul(ringPubKs[s], w[s]);
+    let qs_newXG = secp256k1.publicKeyCombine([qs_newXG_1, qs_newXG_2], false);
+    console.log("qs_newXG: ", qs_newXG.toString('hex'));
+    // check end;
+    return {
+        q:q,
+        w:w,
+        PubKeys:ringPubKs,
+        I: I,
+        m: m
+    };
 }
 exports.convertWaddrtoRaw = function(fromWaddr){
     let address = exports.stripHexPrefix(fromWaddr).toLowerCase();
