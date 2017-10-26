@@ -24,9 +24,15 @@ var methods = function () {
         call: 'wan_getOTAMixSet',
         params: 2
     });
+    var getOTABalance = new Method({
+        name: 'getOTABalance',
+        call: 'eth_getOTABalance',
+        params: 1
+    });
 
     return [
-        getOTAMixSet
+        getOTAMixSet,
+        getOTABalance
     ];
 };
 var properties = function () {
