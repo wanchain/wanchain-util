@@ -577,9 +577,9 @@ exports.getRingSign = function(m,otaSk,otaPubK,ringPubKs){
     let bnx = new BN(otaSk).umod(secp256k1_N);
     let csx = cs.mul(bnx).umod(secp256k1_N)//;
     let rs = Qs.sub(csx).umod(secp256k1_N);;
-    w[s] = cs.toBuffer();
+    w[s] = cs.toBuffer('be',32);
     qs_old = q[s];
-    q[s] = rs.toBuffer();
+    q[s] = rs.toBuffer('be',32);
     // check if qs_old*G == qs_new*G + cs * Ps
     let qs_oldXG = secp256k1.publicKeyCreate(qs_old, false);
     console.log("qs_old_XG: ", qs_oldXG.toString('hex'));
