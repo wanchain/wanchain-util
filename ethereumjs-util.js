@@ -582,11 +582,11 @@ exports.getRingSign = function(m,otaSk,otaPubK,ringPubKs){
     q[s] = rs.toBuffer();
     // check if qs_old*G == qs_new*G + cs * Ps
     let qs_oldXG = secp256k1.publicKeyCreate(qs_old, false);
-    console.log("qs_oldXG: ", qs_oldXG.toString('hex'));
+    console.log("qs_old_XG: ", qs_oldXG.toString('hex'));
     let qs_newXG_1 = secp256k1.publicKeyCreate(q[s], false);
     let qs_newXG_2 = secp256k1.publicKeyTweakMul(ringPubKs[s], w[s]);
     let qs_newXG = secp256k1.publicKeyCombine([qs_newXG_1, qs_newXG_2], false);
-    console.log("qs_newXG: ", qs_newXG.toString('hex'));
+    console.log("qs_new_XG: ", qs_newXG.toString('hex'));
     // check end;
     return {
         q:q,
@@ -804,7 +804,6 @@ exports.defineProperties = function (self, fields, data) {
   }
 
   self.serialize = function serialize () {
-    console.log(self.raw);
     return rlp.encode(self.raw)
   }
 

@@ -7,7 +7,6 @@ const assert = require('assert')
  * @returns {Buffer} - returns buffer of encoded data
  **/
 exports.encode = function (input) {
-  console.log("running here");
   if (input instanceof Array) {
     var output = []
     for (var i = 0; i < input.length; i++) {
