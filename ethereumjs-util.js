@@ -1,4 +1,4 @@
-const SHA3 = require('keccakjs')
+const SHA3 = require('keccak');
 const secp256k1 = require('secp256k1')
 const assert = require('assert')
 const rlp = require('./rlp.js')
@@ -238,11 +238,10 @@ exports.sha3 = function (a, bits) {
   a = exports.toBuffer(a)
   if (!bits) bits = 256
 
-  var h = new SHA3(bits)
-  if (a) {
-    h.update(a)
-  }
-  return new Buffer(h.digest('hex'), 'hex')
+  let h = SHA3('keccak256');
+  h.update(a);
+  let hash = h.digest();
+  return hash;
 }
 
 //x * hash(P)P
@@ -516,7 +515,7 @@ exports.verifyRinSign = function(ringArgs){
     }
     sumC = sumC.umod(secp256k1_N);
     console.log("all  sum: ",sumC.toBuffer('be',32).toString('hex'));
-    var h = new SHA3(256);
+    let h = SHA3('keccak256');
     h.update(ringArgs.m);
     for (let i=0; i<ringArgs.w.length;i++){
         let Li = secp256k1.publicKeyCreate(ringArgs.q[i], false);//[qi]G
@@ -531,8 +530,9 @@ exports.verifyRinSign = function(ringArgs){
         Ri = secp256k1.publicKeyCombine([Ri, wiI], false);
         h.update(Ri);
     }
-    console.log("all hash: ",h.digest('hex').toString('hex'));
-    return h.digest('hex').toString('hex') == sumC.toBuffer('be',32).toString('hex');
+    let hash = h.digest();
+    console.log("all hash: ",hash.toString('hex'));
+    return hash.toString('hex') == sumC.toBuffer('be',32).toString('hex');
 }
 exports.getRingSign = function(m,otaSk,otaPubK,ringPubKs){
     let rklen = ringPubKs.length;
@@ -544,7 +544,7 @@ exports.getRingSign = function(m,otaSk,otaPubK,ringPubKs){
     let q = [];
     let w = [];
     let sumC = new BN('0');
-    var h = new SHA3(256);
+    let h = SHA3('keccak256');
     h.update(m);
     for(let i=0; i<rklen+1; i++) {
         q.push(_generatePrivateKey());
