@@ -235,13 +235,10 @@ exports.toUnsigned = function (num) {
  * @return {Buffer}
  */
 exports.sha3 = function (a, bits) {
-  a = exports.toBuffer(a)
-  if (!bits) bits = 256
+    a = exports.toBuffer(a)
+    if (!bits) bits = 256
 
-  let h = SHA3('keccak256');
-  h.update(a);
-  let hash = h.digest();
-  return hash;
+    return createKeccakHash('keccak' + bits).update(a).digest()
 }
 
 //x * hash(P)P
