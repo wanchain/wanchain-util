@@ -88,20 +88,16 @@ default: new Buffer([])
     default: new Buffer([])
   }, {
     name: 'PublicKeys',
-    length: 1,
-    default: new Buffer([0xC0])
+    default: []
   }, {
     name: 'KeyImage',
-    length: 1,
-    default: new Buffer([0xC0])
+    default: []
   }, {
     name: 'W_random',
-    length: 1,
-    default: new Buffer([0xC0])
+    default: []
   }, {
     name: 'Q_random',
-    length: 1,
-    default: new Buffer([0xC0])
+    default: []
   }]
 
   /**

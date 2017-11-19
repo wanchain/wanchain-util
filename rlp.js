@@ -16,7 +16,7 @@ exports.encode = function (input) {
     return Buffer.concat([encodeLength(buf.length, 192), buf])
   } else {
     input = toBuffer(input)
-    if ((input.length === 1 && input[0] < 128 ) || (input.length === 1 && input[0] === 0xC0 )) {//if (input.length === 1 && input[0] < 128 ) {
+    if ((input.length === 1 && input[0] < 128 )) {
       return input
     } else {
       return Buffer.concat([encodeLength(input.length, 128), input])
