@@ -238,7 +238,7 @@ exports.sha3 = function (a, bits) {
     a = exports.toBuffer(a)
     if (!bits) bits = 256
 
-    return createKeccakHash('keccak' + bits).update(a).digest()
+    return SHA3('keccak' + bits).update(a).digest()
 }
 
 //x * hash(P)P
