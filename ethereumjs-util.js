@@ -810,20 +810,24 @@ exports.defineProperties = function (self, fields, data) {
       return self.raw[i]
     }
     function setter (v) {
-      v = exports.toBuffer(v)
+      if (v instanceof Array) {
+        self.raw[i] = v
+      } else {
+        v = exports.toBuffer(v)
 
-      if (v.toString('hex') === '00' && !field.allowZero) {
-        v = new Buffer([])
+        if (v.toString('hex') === '00' && !field.allowZero) {
+          v = new Buffer([])
+        }
+
+        if (field.allowLess && field.length) {
+          v = exports.stripZeros(v)
+          assert(field.length >= v.length, 'The field ' + field.name + ' must not have more ' + field.length + ' bytes')
+        } else if (!(field.allowZero && v.length === 0) && field.length) {
+          assert(field.length === v.length, 'The field ' + field.name + ' must have byte length of ' + field.length)
+        }
+
+        self.raw[i] = v
       }
-
-      if (field.allowLess && field.length) {
-        v = exports.stripZeros(v)
-        assert(field.length >= v.length, 'The field ' + field.name + ' must not have more ' + field.length + ' bytes')
-      } else if (!(field.allowZero && v.length === 0) && field.length) {
-        assert(field.length === v.length, 'The field ' + field.name + ' must have byte length of ' + field.length)
-      }
-
-      self.raw[i] = v
     }
 
     Object.defineProperty(self, field.name, {
