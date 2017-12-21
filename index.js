@@ -210,7 +210,7 @@ exports.getRingSign = function(m,otaSk,otaPubK,ringPubKs){
             sumC = sumC.umod(secp256k1_N);
         }
         h.update(Li);
-        console.log("L",i,": ",Li.toString('hex'));
+        //console.log("L",i,": ",Li.toString('hex'));
     }
     for(let i=0; i<rklen+1; i++) {
         let Ric = exports.xScalarHashP(q[i], ringPubKs[i]);
@@ -220,7 +220,7 @@ exports.getRingSign = function(m,otaSk,otaPubK,ringPubKs){
             Ri = secp256k1.publicKeyCombine([Ri, wiI], false);
         }
         h.update(Ri);
-        console.log("R",i,": ",Ri.toString('hex'));
+        //console.log("R",i,": ",Ri.toString('hex'));
     }
     let cd = h.digest('hex');
     let c = new BN(cd,16).umod(secp256k1_N);
@@ -235,11 +235,11 @@ exports.getRingSign = function(m,otaSk,otaPubK,ringPubKs){
     q[s] = rs.toBuffer('be',32);
     // check if qs_old*G == qs_new*G + cs * Ps
     let qs_oldXG = secp256k1.publicKeyCreate(qs_old, false);
-    console.log("qs_old_XG: ", qs_oldXG.toString('hex'));
+    //console.log("qs_old_XG: ", qs_oldXG.toString('hex'));
     let qs_newXG_1 = secp256k1.publicKeyCreate(q[s], false);
     let qs_newXG_2 = secp256k1.publicKeyTweakMul(ringPubKs[s], w[s]);
     let qs_newXG = secp256k1.publicKeyCombine([qs_newXG_1, qs_newXG_2], false);
-    console.log("qs_new_XG: ", qs_newXG.toString('hex'));
+    //console.log("qs_new_XG: ", qs_newXG.toString('hex'));
     // check end;
     return {
         q:q,
