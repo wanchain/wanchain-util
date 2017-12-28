@@ -1,5 +1,5 @@
 const Method = require("web3/lib/web3/method");
-//const formatters = require('web3/lib/web3/formatters');
+const formatters = require('web3/lib/web3/formatters');
 
 
 function Wan(web3) {
@@ -30,9 +30,17 @@ var methods = function () {
         params: 1
     });
 
+    var getWanAddress = new Method({
+        name: 'getWanAddress',
+        call: 'wan_getWanAddress',
+        params: 1,
+        inputFormatter: [formatters.inputAddressFormatter]
+    });
+
     return [
         getOTAMixSet,
-        getOTABalance
+        getOTABalance,
+        getWanAddress
     ];
 };
 var properties = function () {
