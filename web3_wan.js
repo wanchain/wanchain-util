@@ -98,6 +98,7 @@ var methods = function () {
 
     return [
         pendingTransactions,
+        computeOTAPPKeys, 
         getOTAMixSet,
         getOTABalance,
         getWanAddress,
