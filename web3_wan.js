@@ -42,11 +42,72 @@ var methods = function () {
         inputFormatter: [formatters.inputAddressFormatter]
     });
 
+    var generateOneTimeAddress = new Method({
+        name: 'generateOneTimeAddress',
+        call: 'wan_generateOneTimeAddress',
+        params: 1,
+        inputFormatter: [null]
+    });
+
+    var sendPrivacyCxtTransaction = new Method({
+        name: 'sendPrivacyCxtTransaction',
+        call: 'wan_sendPrivacyCxtTransaction',
+        params: 2,
+        inputFormatter: [formatters.inputTransactionFormatter, null]
+    });
+
+    var computeOTAPPKeys = new Method({
+        name: 'computeOTAPPKeys',
+        call: 'wan_computeOTAPPKeys',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter, null]
+    });
+
+    var genRingSignData = new Method({
+        name: 'genRingSignData',
+        call: 'wan_genRingSignData',
+        params: 3,
+    });
+
+    var getOTABalance = new Method({
+        name: 'getOTABalance',
+        call: 'wan_getOTABalance',
+        params: 2,
+        inputFormatter: [null, formatters.inputDefaultBlockNumberFormatter],
+        outputFormatter: formatters.outputBigNumberFormatter
+    });
+
+    var scanOTAbyAccount = new Method ({
+        name: 'scanOTAbyAccount',
+        call: 'wan_scanOTAbyAccount',
+        params: 2,
+        inputFormatter: [formatters.inputAddressFormatter,formatters.inputBlockNumberFormatter]
+    });
+
+    var getPermiWanCoinOTABalances = new Method ({
+        name: 'getPermiWanCoinOTABalances',
+        call: 'wan_getPermiWanCoinOTABalances',
+        params: 0,
+    });
+
+    var getSupportStampOTABalances = new Method ({
+        name: 'getSupportStampOTABalances',
+        call: 'wan_getSupportStampOTABalances',
+        params: 0,
+    });
+
     return [
         pendingTransactions,
         getOTAMixSet,
         getOTABalance,
-        getWanAddress
+        getWanAddress,
+        generateOneTimeAddress,
+        sendPrivacyCxtTransaction,
+        genRingSignData,
+        getOTABalance,
+        scanOTAbyAccount,
+        getPermiWanCoinOTABalances,
+        getSupportStampOTABalances
     ];
 };
 var properties = function () {
