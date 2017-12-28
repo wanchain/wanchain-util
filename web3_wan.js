@@ -19,6 +19,11 @@ function Wan(web3) {
 }
 
 var methods = function () {
+    var pendingTransactions = new Method({
+        name: 'pendingTransactions',
+        call: 'eth_pendingTransactions',
+        params: 1
+    });
     var getOTAMixSet = new Method({
         name: 'getOTAMixSet',
         call: 'wan_getOTAMixSet',
@@ -38,6 +43,7 @@ var methods = function () {
     });
 
     return [
+        pendingTransactions,
         getOTAMixSet,
         getOTABalance,
         getWanAddress

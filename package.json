@@ -1,15 +1,14 @@
 {
   "name": "wanchain-util",
-  "version": "0.3.5",
+  "version": "1.0.3",
   "description": "wanchain util package",
   "main": "index.js",
   "scripts": {
     "test": "node test.js"
   },
   "dependencies": {
-    "rlp": "^2.0.0",
-	"ethereumjs-util":"^5.1.2",
-	"ethereumjs-tx":"^1.1.2"
+	"ethereumjs-util":"5.1.2",
+	"ethereumjs-tx":"1.1.2"
   },
   "keywords": [
     "wanchain"
