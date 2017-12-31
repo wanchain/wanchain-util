@@ -274,7 +274,7 @@ exports.convertPubKeytoWaddr = function(pubKeyA, pubKeyB){
 }
 exports.generateA1 = function(RPrivateKeyDBytes, pubKeyA,  pubKeyB){
     let A1 = secp256k1.publicKeyTweakMul(pubKeyB, RPrivateKeyDBytes, false);
-    A1Bytes = ethUtil.sha3(A1);
+    let A1Bytes = ethUtil.sha3(A1);
     A1 = secp256k1.publicKeyTweakAdd(pubKeyA, A1Bytes, false);
     return A1;
 }
@@ -469,6 +469,48 @@ exports.computeWaddrPrivateKey = function(waddr, bufa, bufb){
     k = secp256k1.privateKeyTweakAdd(k, bufa);
     return k;
 }
+
+/**
+ * Checks if the address is a valid. Accepts checksummed addresses too
+ * @param {String} address
+ * @return {Boolean}
+ */
+exports.isValidAddress = function (address) {
+    return /^0x[0-9a-fA-F]{40}$/i.test(address)
+}
+
+/**
+ * Returns a checksummed address
+ * @param {String} address
+ * @return {String}
+ */
+exports.toChecksumAddress = function (address) {
+    address = exports.stripHexPrefix(address).toLowerCase()
+    var hash = exports.sha3(address).toString('hex')
+    var ret = '0x'
+
+    for (var i = 0; i < address.length; i++) {
+        if (parseInt(hash[i], 16) < 8) {
+            ret += address[i].toUpperCase()
+        } else {
+            ret += address[i]
+        }
+    }
+
+    return ret
+}
+
+/**
+ * Checks if the address is a valid checksummed address
+ * @param {Buffer} address
+ * @return {Boolean}
+ */
+exports.isValidChecksumAddress = function (address) {
+    return exports.isValidAddress(address) && (exports.toChecksumAddress(address) === address)
+}
+
+
+
 exports.sha3 = ethUtil.sha3;
 exports.web3Wan = require("./web3_wan.js");
 exports.coinSCAbi = [{"constant":false,"type":"function","stateMutability":"nonpayable","inputs":[{"name":"OtaAddr","type":"string"},{"name":"Value","type":"uint256"}],"name":"buyCoinNote","outputs":[{"name":"OtaAddr","type":"string"},{"name":"Value","type":"uint256"}]},{"constant":false,"type":"function","inputs":[{"name":"RingSignedData","type":"string"},{"name":"Value","type":"uint256"}],"name":"refundCoin","outputs":[{"name":"RingSignedData","type":"string"},{"name":"Value","type":"uint256"}]},{"constant":false,"inputs":[],"name":"getCoins","outputs":[{"name":"Value","type":"uint256"}]}];
