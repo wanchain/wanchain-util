@@ -83,6 +83,13 @@ const wanchainTx = function (data) {
         get: this.getSenderAddress.bind(this)
     })
 
+    // calculate chainId from signature
+    let sigV = ethUtil.bufferToInt(this.v)
+    let chainId = Math.floor((sigV - 35) / 2)
+    if (chainId < 0) chainId = 0
+
+    // set chainId
+    this._chainId = chainId || data.chainId || 0
     this._homestead = true
 }
 
@@ -101,17 +108,32 @@ extend(wanchainTx, ethTx);
  * @param {Boolean} [signature=true] whether or not to inculde the signature
  * @return {Buffer}
  */
-wanchainTx.prototype.hash = function (signature) {
-    let toHash
+wanchainTx.prototype.hash = function (includeSignature){
+    if (includeSignature === undefined) includeSignature = true
 
-    if (typeof signature === 'undefined') {
-        signature = true
+    // EIP155 spec:
+    // when computing the hash of a transaction for purposes of signing or recovering,
+    // instead of hashing only the first six elements (ie. nonce, gasprice, startgas, to, value, data),
+    // hash nine elements, with v replaced by CHAIN_ID, r = 0 and s = 0
+
+    let items
+    if (includeSignature) {
+        items = this.raw
+    } else {
+        if (this._chainId > 0) {
+            const raw = this.raw.slice()
+            this.v = this._chainId
+            this.r = 0
+            this.s = 0
+            items = this.raw
+            this.raw = raw
+        } else {
+            items = this.raw.slice(0, 7)
+        }
     }
 
-    toHash = signature ? this.raw : this.raw.slice(0, 7)//cr@zy
-
     // create hash
-    return ethUtil.rlphash(toHash)
+    return ethUtil.rlphash(items)
 }
 
 

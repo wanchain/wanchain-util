@@ -7,8 +7,8 @@
     "test": "node test.js"
   },
   "dependencies": {
-	"ethereumjs-util":"5.1.2",
-	"ethereumjs-tx":"1.1.2"
+    "ethereumjs-tx": "1.3.3",
+    "ethereumjs-util": "5.1.2"
   },
   "keywords": [
     "wanchain"
